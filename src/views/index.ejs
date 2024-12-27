@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Application</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Chat Application</h1>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages"></div>
+            
+            <div class="input-container">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('text')">Text Chat</button>
+                    <button class="tab-btn" onclick="switchTab('image')">Image Analysis</button>
+                </div>
+
+                <div id="textInput" class="input-section active">
+                    <textarea id="messageInput" placeholder="Type your message here..."></textarea>
+                    <button onclick="sendTextMessage()">Send</button>
+                </div>
+
+                <div id="imageInput" class="input-section">
+                    <input type="file" id="imageFile" accept="image/*">
+                    <textarea id="imageQuestion" placeholder="Ask a question about the image (optional)"></textarea>
+                    <button onclick="sendImage()">Analyze Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.input-section').forEach(section => section.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Input').classList.add('active');
+        }
+
+        function appendMessage(content, isUser = false) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            messageDiv.textContent = content;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        async function sendTextMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            appendMessage(message, true);
+            messageInput.value = '';
+
+            try {
+                const response = await fetch('/chat/text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message }),
+                });
+
+                const data = await response.json();
+                appendMessage(data.response);
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage('Sorry, an error occurred while processing your request.');
+            }
+        }
+
+        async function sendImage() {
+            const imageFile = document.getElementById('imageFile').files[0];
+            const question = document.getElementById('imageQuestion').value.trim();
+            
+            if (!imageFile) {
+                alert('Please select an image first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', imageFile);
+            formData.append('question', question);
+
+            appendMessage(`Analyzing image${question ? ': ' + question : ''}`, true);
+
+            try {
+                const response = await fetch('/chat/image', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await response.json();
+                appendMessage(data.response);
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage('Sorry, an error occurred while processing your request.');
+            }
+        }
+    </script>
+</body>
+</html>
